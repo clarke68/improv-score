@@ -1,0 +1,26 @@
+{
+  "name": "digital-score",
+  "version": "1.0.0",
+  "description": "Real-time multiplayer web application for synchronized musical performances",
+  "type": "module",
+  "main": "server/index.js",
+  "scripts": {
+    "dev:server": "nodemon server/index.js",
+    "start": "node server/index.js"
+  },
+  "keywords": [
+    "music",
+    "performance",
+    "real-time",
+    "synchronized"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.6.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  }
+}
