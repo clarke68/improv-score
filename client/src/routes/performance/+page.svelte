@@ -578,10 +578,10 @@
         {/if}
       </div>
 
-      <!-- Leave button (mobile-friendly, adaptive to state) -->
+      <!-- Leave button -->
       <button
         on:click={handleLeave}
-        class="absolute bottom-4 right-4 px-4 py-3 sm:px-3 sm:py-2 text-sm sm:text-xs opacity-70 sm:opacity-50 hover:opacity-100 active:opacity-100 transition-opacity duration-200 border-2 sm:border rounded min-w-[60px] min-h-[44px] sm:min-w-0 sm:min-h-0 touch-manipulation z-10 {currentState === 'rest' ? 'bg-black text-brand-gray-light border-brand-gray-light' : 'bg-white text-brand-gray border-gray-300'}"
+        class="fixed bottom-4 right-4 px-3 py-2 text-xs opacity-50 hover:opacity-100 transition-opacity duration-200 border rounded z-10 {currentState === 'rest' ? 'bg-black text-brand-gray-light border-brand-gray-light' : 'bg-white text-brand-gray border-gray-300'}"
         aria-label="Leave performance"
       >
         Leave
