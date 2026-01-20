@@ -361,6 +361,35 @@ export function setupSocketHandlers(io) {
       }
     });
 
+    // Cancel performance (conductor only)
+    socket.on('cancel-performance', ({ code }) => {
+      try {
+        const session = getSession(code);
+        if (!session || session.conductorId !== socket.id) {
+          return; // Not authorized
+        }
+
+        // Only allow cancel if performance is in progress
+        if (session.state !== 'performing') {
+          return; // Not performing, ignore
+        }
+
+        // Only cancel if engine exists
+        if (!session.engine) {
+          return; // No engine, ignore
+        }
+
+        console.log(`Performance cancelled by conductor for session ${code}`);
+
+        // End the performance - this will trigger the onEnd callback
+        // which handles cleanup and sending performance-ended events
+        session.engine.endPiece(session.players.length);
+      } catch (error) {
+        console.error('Error cancelling performance:', error);
+        socket.emit('error', { message: 'Failed to cancel performance' });
+      }
+    });
+
     // Handle disconnection
     socket.on('disconnect', () => {
       handleDisconnect(socket);

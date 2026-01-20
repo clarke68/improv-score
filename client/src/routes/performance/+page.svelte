@@ -513,6 +513,12 @@
   function handleReturnToLobby() {
     goto('/lobby');
   }
+
+  function handleCancel() {
+    if (socketInstance && currentCode) {
+      socketInstance.emit('cancel-performance', { code: currentCode });
+    }
+  }
 </script>
 
 <div
@@ -577,6 +583,18 @@
           <div class="text-4xl sm:text-6xl font-bold">{currentMark}</div>
         {/if}
       </div>
+
+      <!-- Cancel button (conductor only) -->
+      {#if $isConductor}
+        <button
+          on:click={handleCancel}
+          class="fixed bottom-4 left-4 px-3 py-2 text-xs opacity-50 hover:opacity-100 transition-opacity duration-200 border rounded z-10 {currentState === 'rest' ? 'bg-black text-brand-gray-light border-brand-gray-light' : 'bg-white text-brand-gray border-gray-300'}"
+          style="{currentState === 'rest' ? 'background-color: rgba(220, 38, 38, 0.2) !important; border-color: rgba(220, 38, 38, 0.3) !important;' : 'background-color: rgba(220, 38, 38, 0.2) !important; border-color: rgba(220, 38, 38, 0.3) !important;'}"
+          aria-label="Cancel performance"
+        >
+          Cancel Performance
+        </button>
+      {/if}
 
       <!-- Leave button -->
       <button
