@@ -367,10 +367,11 @@
       // After 10 seconds, handle end
       setTimeout(() => {
         if (role === 'conductor') {
-          // Conductor returns to lobby automatically
+          // Conductor returns to conductor page automatically
           goto('/conductor');
         } else {
-          // Performers see return button (handled in template)
+          // Performers also return to lobby automatically
+          goto('/lobby');
         }
       }, 10000);
     });
@@ -596,12 +597,9 @@
           Returning to conductor setup...
         </div>
       {:else}
-        <button
-          on:click={handleReturnToLobby}
-          class="mt-8 bg-brand-feature hover:bg-brand-feature-dark text-white font-normal p-4 transition-colors duration-200 text-base leading-4"
-        >
-          Return to Lobby
-        </button>
+        <div class="text-lg sm:text-xl text-center">
+          Returning to lobby...
+        </div>
       {/if}
     </div>
   {/if}

@@ -327,6 +327,12 @@ export function setupSocketHandlers(io) {
             setSessionState(code, 'ended');
             session.engine = null;
             
+            // Broadcast updated player list to all players in session
+            // This ensures late joiners appear in everyone's lobby
+            io.to(`session-${code}`).emit('player-joined', {
+              players: session.players
+            });
+            
             // After 10 seconds, return conductor to lobby
             setTimeout(() => {
               if (session.state === 'ended' && session.conductorId) {
