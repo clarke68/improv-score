@@ -1,8 +1,9 @@
 <script>
-  import { goto } from '$app/navigation';
+  import { goto } from '$lib/utils/navigation.js';
+  import { base } from '$app/paths';
 </script>
 
-<div class="min-h-screen flex items-center justify-center" style="background-image: url('/assets/bgLight.png'); background-repeat: repeat;">
+<div class="min-h-screen flex items-center justify-center" style="background-image: url('{base}/assets/bgLight.png'); background-repeat: repeat;">
   <div class="max-w-md w-full mx-4">
     <div class="text-center mb-12">
       <h1 class="text-5xl mb-4">

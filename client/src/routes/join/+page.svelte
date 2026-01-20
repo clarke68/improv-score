@@ -1,8 +1,9 @@
 <script>
-  import { goto } from '$app/navigation';
+  import { goto } from '$lib/utils/navigation.js';
+  import { base } from '$app/paths';
   import { onMount } from 'svelte';
-  import { sessionCode, isConductor, players, sessionSettings, instructionalMessage } from '$lib/stores/socket.js';
-  import { initSocket } from '$lib/stores/socket.js';
+import { sessionCode, isConductor, players, sessionSettings, instructionalMessage, pendingPerformanceState } from '$lib/stores/socket.js';
+import { initSocket } from '$lib/stores/socket.js';
 
   let codeInput = '';
   let error = '';
@@ -28,8 +29,15 @@
       instructionalMessage.set(data.instructionalMessage);
       isLoading = false;
       
-      // Navigate to nickname screen first
-      goto(`/nickname?role=performer`);
+      // If joining during performance, store performance state and go directly to performance page
+      // Otherwise go to nickname screen first
+      if (data.performanceState && data.performanceState.inProgress) {
+        pendingPerformanceState.set(data.performanceState);
+        goto('/performance');
+      } else {
+        pendingPerformanceState.set(null);
+        goto(`/nickname?role=performer`);
+      }
     });
 
     // Listen for errors
@@ -87,7 +95,7 @@
   }
 </script>
 
-<div class="min-h-screen flex items-center justify-center px-4" style="background-image: url('/assets/bgLight.png'); background-repeat: repeat;">
+<div class="min-h-screen flex items-center justify-center px-4" style="background-image: url('{base}/assets/bgLight.png'); background-repeat: repeat;">
   <div class="max-w-md w-full p-8">
     <div class="mb-8">
       <h1 class="text-[2.5rem] mb-8">

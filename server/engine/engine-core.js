@@ -82,6 +82,47 @@ export class ScoreEngine {
     );
   }
 
+  // ===== State Getters for Late Join / Reconnection ============================
+
+  // Get current cues for all players
+  getCurrentCues(numPlayers) {
+    if (this.previousStates && this.previousStates.length > 0) {
+      return this.previousStates.map((state, idx) => ({
+        playerIndex: idx,
+        state: state.state || 'Rest',
+        mark: state.mark || '',
+        loudness: state.loudness || 0
+      }));
+    }
+    return Array.from({ length: numPlayers }, () => ({ 
+      state: 'Rest', 
+      mark: '', 
+      loudness: 0 
+    }));
+  }
+
+  // Get current countdowns (from last render)
+  getCurrentCountdowns(numPlayers) {
+    // We need to track active countdowns - for now return null
+    // The client will receive updates via performance-cue events
+    return null;
+  }
+
+  // Get performance end time
+  getEndTime() {
+    return this.pieceEndTime;
+  }
+
+  // Get performance start time
+  getStartTime() {
+    return this.pieceStartTime;
+  }
+
+  // Get duration in milliseconds
+  getDuration() {
+    return this.controls ? this.controls.durationMin * 60 * 1000 : 0;
+  }
+
   // ===== Core generation =====================================================
 
   _generateBiasedInstructionsWithDynamics(numPlayers, now) {

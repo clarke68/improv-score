@@ -13,7 +13,8 @@
     instructionalMessage,
     performanceCues,
     performanceCountdowns,
-    serverTime
+    serverTime,
+    pendingPerformanceState
   } from '$lib/stores/socket.js';
   
   // Import SVG images for dynamic marks
@@ -71,6 +72,26 @@
   let currentLoudness = 0;
   
   let serverTimestamp = Date.now();
+
+  // Contextual banner state for late joiners/reconnectors
+  let showContextualBanner = false;
+  let contextualMessage = '';
+  let performanceRemainingTime = 0; // in seconds
+  let contextualBannerTimer = null;
+  let remainingTimeInterval = null;
+  let isLateJoiner = false; // Track if this player joined during performance
+
+  // Format time remaining for display
+  function formatTimeRemaining(remainingMs) {
+    const totalSeconds = Math.ceil(remainingMs / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    
+    if (minutes > 0) {
+      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+    return `${seconds}`;
+  }
 
   // Find player index
   function findPlayerIndex() {
@@ -141,6 +162,64 @@
       return;
     }
 
+    // Check for pending performance state (late join)
+    const unsubscribePending = pendingPerformanceState.subscribe(pending => {
+      if (pending && pending.inProgress) {
+        const { startTime, serverTime: serverTimeValue, remaining, currentCues, currentCountdowns, joinedLate } = pending;
+        
+        // Set late joiner flag
+        isLateJoiner = joinedLate || false;
+        
+        // Sync clock (for potential performance-ended timing)
+        clockDrift = Date.now() - serverTimeValue;
+        clockDriftSamples = 1;
+        
+        // Late joiners don't receive performance cues - they'll observe only
+        // Don't set up visual state from cues
+        if (!isLateJoiner) {
+          // Update visual state with current cues (for reconnectors who were original participants)
+          const index = findPlayerIndex();
+          if (currentCues && currentCues[index] !== undefined) {
+            currentCue = currentCues[index];
+            updateVisualState(currentCue);
+            hasReceivedFirstCue = true;
+          }
+          
+          // Set up countdown if active
+          if (currentCountdowns && currentCountdowns[index]) {
+            currentCountdown = currentCountdowns[index];
+            const cd = updateCountdown(currentCountdown, serverTimeValue);
+            countdownSeconds = cd.seconds;
+            showCountdown = cd.show;
+          }
+        }
+        
+        // Show contextual banner for late joiners
+        if (joinedLate && remaining !== undefined) {
+          performanceRemainingTime = Math.ceil(remaining / 1000);
+          contextualMessage = `You have successfully joined the session. You will be invited to play in the next performance.\n\nTime remaining in current performance: ${formatTimeRemaining(remaining)}`;
+          showContextualBanner = true;
+          
+          // Update message every second to countdown
+          remainingTimeInterval = setInterval(() => {
+            if (performanceRemainingTime > 0) {
+              performanceRemainingTime--;
+              const remainingMs = performanceRemainingTime * 1000;
+              contextualMessage = `You have successfully joined the session. You will be invited to play in the next performance.\n\nTime remaining in current performance: ${formatTimeRemaining(remainingMs)}`;
+            } else {
+              clearInterval(remainingTimeInterval);
+              remainingTimeInterval = null;
+            }
+          }, 1000);
+          
+          // Banner stays visible for the entire performance (no auto-dismiss)
+        }
+        
+        // Clear pending state after handling
+        pendingPerformanceState.set(null);
+      }
+    });
+
     // Subscribe to stores
     const unsubscribeCode = sessionCode.subscribe(code => {
       currentCode = code || '';
@@ -163,6 +242,11 @@
     // Listen for performance-cue events FIRST (before performance-starting)
     // This ensures we're ready to receive cues immediately
     socketInstance.on('performance-cue', ({ cues, countdowns, serverTime: serverTimeValue }) => {
+      // Late joiners don't receive performance cues during current performance
+      // They observe only and will participate in the next performance
+      if (isLateJoiner) {
+        return;
+      }
       
       serverTimestamp = serverTimeValue;
       const now = Date.now();
@@ -296,6 +380,60 @@
       goto('/conductor');
     });
 
+    // Listen for session-joined (handles late join during performance)
+    socketInstance.on('session-joined', (data) => {
+      if (data.performanceState && data.performanceState.inProgress) {
+        const { startTime, serverTime, remaining, currentCues, currentCountdowns, joinedLate } = data.performanceState;
+        
+        // Set late joiner flag
+        isLateJoiner = joinedLate || false;
+        
+        // Sync clock (for potential performance-ended timing)
+        clockDrift = Date.now() - serverTime;
+        clockDriftSamples = 1;
+        
+        // Late joiners don't receive performance cues
+        if (!isLateJoiner) {
+          // Update visual state with current cues (for reconnectors)
+          const index = findPlayerIndex();
+          if (currentCues && currentCues[index] !== undefined) {
+            currentCue = currentCues[index];
+            updateVisualState(currentCue);
+            hasReceivedFirstCue = true;
+          }
+          
+          // Set up countdown if active
+          if (currentCountdowns && currentCountdowns[index]) {
+            currentCountdown = currentCountdowns[index];
+            const cd = updateCountdown(currentCountdown, serverTime);
+            countdownSeconds = cd.seconds;
+            showCountdown = cd.show;
+          }
+        }
+        
+        // Show contextual banner for late joiners
+        if (joinedLate && remaining !== undefined) {
+          performanceRemainingTime = Math.ceil(remaining / 1000);
+          contextualMessage = `You have successfully joined the session. You will be invited to play in the next performance.\n\nTime remaining in current performance: ${formatTimeRemaining(remaining)}`;
+          showContextualBanner = true;
+          
+          // Update message every second to countdown
+          remainingTimeInterval = setInterval(() => {
+            if (performanceRemainingTime > 0) {
+              performanceRemainingTime--;
+              const remainingMs = performanceRemainingTime * 1000;
+              contextualMessage = `You have successfully joined the session. You will be invited to play in the next performance.\n\nTime remaining in current performance: ${formatTimeRemaining(remainingMs)}`;
+            } else {
+              clearInterval(remainingTimeInterval);
+              remainingTimeInterval = null;
+            }
+          }, 1000);
+          
+          // Banner stays visible for the entire performance (no auto-dismiss)
+        }
+      }
+    });
+
     // Start countdown update interval
     countdownInterval = setInterval(() => {
       if (currentCountdown && !performanceEnded) {
@@ -332,6 +470,7 @@
     }, 200); // Update every 200ms
 
     return () => {
+      unsubscribePending();
       unsubscribeCode();
       unsubscribeMessage();
       unsubscribeSettings();
@@ -339,6 +478,17 @@
       
       if (countdownInterval) {
         clearInterval(countdownInterval);
+        countdownInterval = null;
+      }
+      
+      if (contextualBannerTimer) {
+        clearTimeout(contextualBannerTimer);
+        contextualBannerTimer = null;
+      }
+      
+      if (remainingTimeInterval) {
+        clearInterval(remainingTimeInterval);
+        remainingTimeInterval = null;
       }
       
       if (socketInstance) {
@@ -346,6 +496,7 @@
         socketInstance.off('performance-cue');
         socketInstance.off('performance-ended');
         socketInstance.off('return-to-lobby');
+        socketInstance.off('session-joined');
       }
     };
   });
@@ -369,6 +520,36 @@
     : 'text-brand-gray'}"
   style="background-image: url({currentState === 'rest' ? base + '/assets/bgDark.png' : base + '/assets/bgLight.png'}); background-repeat: repeat;"
 >
+  <!-- Contextual Banner for late joiners/reconnectors -->
+  {#if showContextualBanner}
+    <div class="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 animate-fade-in">
+      <div class="bg-black bg-opacity-75 text-white px-6 py-3 rounded-lg shadow-lg">
+        <div class="flex items-center justify-between gap-4">
+          <p class="text-sm font-medium" style="white-space: pre-line;">{contextualMessage}</p>
+          <button
+            on:click={() => {
+              showContextualBanner = false;
+              if (remainingTimeInterval) {
+                clearInterval(remainingTimeInterval);
+                remainingTimeInterval = null;
+              }
+              if (contextualBannerTimer) {
+                clearTimeout(contextualBannerTimer);
+                contextualBannerTimer = null;
+              }
+            }}
+            class="text-white opacity-60 hover:opacity-100 transition-opacity ml-4"
+            aria-label="Dismiss"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  {/if}
+
   <!-- Main performance display -->
   {#if !performanceEnded}
     <div class="h-full flex items-center justify-center relative">
@@ -396,10 +577,11 @@
         {/if}
       </div>
 
-      <!-- Leave button (minimal) -->
+      <!-- Leave button (mobile-friendly, adaptive to state) -->
       <button
         on:click={handleLeave}
-        class="absolute bottom-4 right-4 px-3 py-2 text-xs opacity-50 hover:opacity-100 transition-opacity duration-200 border rounded"
+        class="absolute bottom-4 right-4 px-4 py-3 sm:px-3 sm:py-2 text-sm sm:text-xs opacity-70 sm:opacity-50 hover:opacity-100 active:opacity-100 transition-opacity duration-200 border-2 sm:border rounded min-w-[60px] min-h-[44px] sm:min-w-0 sm:min-h-0 touch-manipulation z-10 {currentState === 'rest' ? 'bg-black text-brand-gray-light border-brand-gray-light' : 'bg-white text-brand-gray border-gray-300'}"
+        aria-label="Leave performance"
       >
         Leave
       </button>

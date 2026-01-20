@@ -18,6 +18,9 @@ export const performanceCues = writable(null);
 export const performanceCountdowns = writable(null);
 export const serverTime = writable(Date.now());
 
+// Pending performance state for late joiners (temporary storage)
+export const pendingPerformanceState = writable(null);
+
 // Initialize socket connection
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000';
 

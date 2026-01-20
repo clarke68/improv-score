@@ -58,6 +58,31 @@ export function setupSocketHandlers(io) {
       }
     });
 
+    // Helper to get current performance state for late joiners/reconnectors
+    function getCurrentPerformanceState(session, playerIndex) {
+      if (!session.engine || !session.performanceStartTime) {
+        return null;
+      }
+      
+      const now = Date.now();
+      const durationMs = session.settings.durationMin * 60 * 1000;
+      const performanceStartMs = session.performanceStartTime;
+      const elapsedMs = Math.max(0, now - performanceStartMs);
+      const remainingMs = Math.max(0, durationMs - elapsedMs);
+      
+      const cues = session.engine.getCurrentCues(session.players.length);
+      const countdowns = session.engine.getCurrentCountdowns(session.players.length);
+      
+      return {
+        cues,
+        countdowns,
+        startTime: performanceStartMs,
+        elapsed: elapsedMs,
+        remaining: remainingMs,
+        duration: durationMs
+      };
+    }
+
     // Join session (performer)
     socket.on('join-session', ({ code, nickname }) => {
       try {
@@ -70,6 +95,12 @@ export function setupSocketHandlers(io) {
         const session = getSession(code.toUpperCase());
         if (!session) {
           socket.emit('session-not-found', { code });
+          return;
+        }
+
+        // Check if session has ended
+        if (session.state === 'ended') {
+          socket.emit('session-ended', { code });
           return;
         }
 
@@ -93,16 +124,50 @@ export function setupSocketHandlers(io) {
           players: updatedSession.players
         });
 
+        const playerIndex = getPlayerIndex(updatedSession, socket.id);
+        const isLateJoin = updatedSession.state === 'performing';
+
         // Send session details to the new player
-        socket.emit('session-joined', {
+        const sessionData = {
           code: updatedSession.code,
           settings: updatedSession.settings,
           instructionalMessage: updatedSession.instructionalMessage,
           players: updatedSession.players,
           isConductor: updatedSession.conductorId === socket.id
-        });
+        };
 
-        console.log(`Player ${socket.id} joined session ${code}`);
+        // If joining during performance, include performance state
+        if (isLateJoin) {
+          const performanceState = getCurrentPerformanceState(updatedSession, playerIndex);
+          if (performanceState) {
+            sessionData.performanceState = {
+              inProgress: true,
+              startTime: performanceState.startTime,
+              serverTime: Date.now(),
+              remaining: performanceState.remaining,
+              duration: performanceState.duration,
+              elapsed: performanceState.elapsed,
+              currentCues: performanceState.cues,
+              currentCountdowns: performanceState.countdowns,
+              joinedLate: true
+            };
+          }
+        }
+
+        socket.emit('session-joined', sessionData);
+
+        // If performance is in progress, immediately send current cue
+        if (isLateJoin && updatedSession.engine) {
+          const cues = updatedSession.engine.getCurrentCues(updatedSession.players.length);
+          const countdowns = updatedSession.engine.getCurrentCountdowns(updatedSession.players.length);
+          socket.emit('performance-cue', {
+            cues: cues,
+            countdowns: countdowns,
+            serverTime: Date.now()
+          });
+        }
+
+        console.log(`Player ${socket.id} joined session ${code}${isLateJoin ? ' (late join during performance)' : ''}`);
       } catch (error) {
         console.error('Error joining session:', error);
         socket.emit('error', { message: 'Failed to join session' });
