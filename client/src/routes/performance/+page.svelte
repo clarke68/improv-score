@@ -1,5 +1,6 @@
 <script>
-  import { goto } from '$app/navigation';
+  import { goto } from '$lib/utils/navigation.js';
+  import { base } from '$app/paths';
   import { onMount, onDestroy } from 'svelte';
   import { initSocket, disconnectSocket } from '$lib/stores/socket.js';
   import {
@@ -58,8 +59,10 @@
   let performanceEnded = false;
   let endMessage = '';
   
-  // Clock sync
+  // Clock sync with smoothing to prevent late messages from corrupting drift
   let clockDrift = 0;
+  let clockDriftSamples = 0;
+  const DRIFT_SMOOTHING = 0.3; // How much to weight new samples (0-1, lower = more smoothing)
   let countdownInterval = null;
   
   // Visual state
@@ -82,6 +85,7 @@
   }
 
   // Calculate countdown from server timestamp
+  // Improved with tolerance for late-arriving messages
   function updateCountdown(countdown, serverTimeValue) {
     if (!countdown || !countdown.endsAt) {
       return { seconds: 0, show: false };
@@ -92,9 +96,15 @@
     const msLeft = countdown.endsAt - adjustedNow;
     const secsLeft = Math.max(0, Math.ceil(msLeft / 1000));
     
+    // Add tolerance: show countdown even if slightly expired (within 200ms)
+    // This handles late-arriving messages gracefully
+    const toleranceMs = 200;
+    const isLateMessage = msLeft < 0 && Math.abs(msLeft) < toleranceMs;
+    const showCountdown = secsLeft > 0 || isLateMessage;
+    
     return {
-      seconds: secsLeft,
-      show: secsLeft > 0 && msLeft > 0
+      seconds: Math.max(0, secsLeft),
+      show: showCountdown
     };
   }
 
@@ -155,10 +165,18 @@
     socketInstance.on('performance-cue', ({ cues, countdowns, serverTime: serverTimeValue }) => {
       
       serverTimestamp = serverTimeValue;
-      
-      // Update clock drift estimate
       const now = Date.now();
-      clockDrift = now - serverTimeValue;
+      
+      // Improved clock drift calculation with exponential moving average
+      // This prevents single late messages from corrupting drift calculation
+      const newDrift = now - serverTimeValue;
+      if (clockDriftSamples === 0) {
+        clockDrift = newDrift;
+      } else {
+        // Use exponential moving average to smooth out drift calculation
+        clockDrift = clockDrift * (1 - DRIFT_SMOOTHING) + newDrift * DRIFT_SMOOTHING;
+      }
+      clockDriftSamples++;
       
       // Get this player's cue
       const index = findPlayerIndex();
@@ -166,58 +184,69 @@
         currentCue = cues[index];
       }
       
-      // Get this player's countdown first
-      let hasActiveCountdown = false;
-      if (countdowns && Array.isArray(countdowns) && countdowns[index]) {
-        const countdown = countdowns[index];
-        // Check if countdown exists and has time remaining (either secs > 0 or endsAt in future)
-        const hasTimeRemaining = (countdown.secs > 0) || (countdown.endsAt && countdown.endsAt > serverTimeValue);
-        
-        if (hasTimeRemaining) {
-          currentCountdown = countdown;
-          
-          // Prefer server-provided label (reflects upcoming cue)
-          countdownLabel = currentCountdown.label || '';
-          
-          // Fallback: build label from cue if server label is missing
-          if (!countdownLabel && currentCue) {
-            if (currentCue.state === 'Play' || currentCue.state === 'play') {
-              const mark = currentCue.mark || '';
-              countdownLabel = mark ? `Play (${mark})` : 'Play';
-            } else {
-              countdownLabel = 'Rest';
-            }
-          }
-          
-          // Update countdown immediately for display
-          const cd = updateCountdown(currentCountdown, serverTimeValue);
-          countdownSeconds = cd.seconds;
-          
-          // Trust the hasTimeRemaining check - if countdown has time, it's active
-          // Even if updateCountdown shows 0 due to timing edge cases, we should still show REST
-          hasActiveCountdown = true;
-          // Force showCountdown to true if we have an active countdown, regardless of cd.show
-          // This ensures the countdown displays even if timing calculations are slightly off
-          showCountdown = true;
-        } else {
-          showCountdown = false;
-          currentCountdown = null;
-        }
-      } else {
+      // CRITICAL: If server sends empty countdowns, this is the authoritative signal
+      // that countdown has expired - update immediately (server authority)
+      if (!countdowns || !countdowns[index] || countdowns[index] === null) {
+        // Server says countdown is done - update visual state immediately
         showCountdown = false;
         currentCountdown = null;
-      }
-      
-      // Only update visual state if there's no active countdown
-      // If there's a countdown, keep current state until countdown ends
-      if (currentCue) {
-        if (!hasActiveCountdown) {
+        if (currentCue) {
           updateVisualState(currentCue);
           hasReceivedFirstCue = true;
         }
-        // If there's a countdown, don't update visual state yet - keep current state
-        // The state will be updated when countdown completes (handled in interval)
-      } else if (!hasReceivedFirstCue) {
+        return; // Early return - server is authoritative
+      }
+      
+      // Otherwise, process countdown normally
+      const countdown = countdowns[index];
+      const adjustedNow = now - clockDrift;
+      const msLeft = countdown.endsAt ? (countdown.endsAt - adjustedNow) : 0;
+      
+      // Show countdown if there's time remaining (with tolerance for late messages)
+      const toleranceMs = 200;
+      const hasTimeRemaining = msLeft > -toleranceMs;
+      
+      let hasActiveCountdown = false;
+      if (hasTimeRemaining && countdown.endsAt) {
+        currentCountdown = countdown;
+        
+        // Prefer server-provided label (reflects upcoming cue)
+        countdownLabel = currentCountdown.label || '';
+        
+        // Fallback: build label from cue if server label is missing
+        if (!countdownLabel && currentCue) {
+          if (currentCue.state === 'Play' || currentCue.state === 'play') {
+            const mark = currentCue.mark || '';
+            countdownLabel = mark ? `Play (${mark})` : 'Play';
+          } else {
+            countdownLabel = 'Rest';
+          }
+        }
+        
+        // Update countdown immediately for display
+        const cd = updateCountdown(currentCountdown, serverTimeValue);
+        countdownSeconds = cd.seconds;
+        hasActiveCountdown = cd.show || cd.seconds > 0;
+        showCountdown = hasActiveCountdown;
+      } else {
+        // Countdown expired - clear it and update visual state immediately
+        showCountdown = false;
+        currentCountdown = null;
+        hasActiveCountdown = false;
+        
+        // If we have a cue, update visual state immediately (don't wait)
+        if (currentCue) {
+          updateVisualState(currentCue);
+          hasReceivedFirstCue = true;
+        }
+      }
+      
+      // If no countdown is active and we have a cue, ensure visual state is updated
+      // This handles the case where server sends empty countdowns array (final state)
+      if (!hasActiveCountdown && currentCue) {
+        updateVisualState(currentCue);
+        hasReceivedFirstCue = true;
+      } else if (!hasReceivedFirstCue && !currentCue) {
         // No cue yet, ensure REST state
         currentState = 'rest';
         currentMark = '';
@@ -228,7 +257,11 @@
     // Listen for performance-starting event (after performance-cue listener is set up)
     socketInstance.on('performance-starting', ({ serverTime: serverTimeValue, settings, instructionalMessage: msg }) => {
       serverTimestamp = serverTimeValue;
-      clockDrift = Date.now() - serverTimeValue;
+      const now = Date.now();
+      const newDrift = now - serverTimeValue;
+      // Initialize clock drift (will be smoothed by subsequent messages)
+      clockDrift = newDrift;
+      clockDriftSamples = 1;
       currentSettings = settings;
       currentMessage = msg || currentMessage;
     });
@@ -274,22 +307,26 @@
         const previousSeconds = countdownSeconds;
         countdownSeconds = cd.seconds;
         
-        // Only hide countdown if it's truly expired (seconds is 0 AND show is false)
-        // Keep showing it if seconds > 0, even if show is false due to timing edge cases
-        if (cd.seconds > 0) {
-          showCountdown = true;
-        } else {
-          showCountdown = cd.show;
-        }
+        // Update showCountdown based on calculated value
+        showCountdown = cd.show;
         
-        // If countdown just reached 0 (was > 0, now is 0), update visual state to the current cue
+        // If countdown just reached 0 (was > 0, now is 0), update visual state IMMEDIATELY
+        // Don't wait for server confirmation - this reduces delay
         if (previousSeconds > 0 && cd.seconds === 0) {
           showCountdown = false;
-          // Now update to the actual cue state
+          // Update visual state immediately when countdown expires locally
+          // Server message will override if there's a conflict, but this ensures responsiveness
           if (currentCue) {
             updateVisualState(currentCue);
             hasReceivedFirstCue = true;
           }
+        }
+      } else if (!currentCountdown && currentCue && !performanceEnded) {
+        // Fallback: if we have a cue but no countdown, ensure visual state is updated
+        // This handles cases where countdown message was missed but cue was received
+        if (!hasReceivedFirstCue || (currentState === 'rest' && currentCue.state === 'Play')) {
+          updateVisualState(currentCue);
+          hasReceivedFirstCue = true;
         }
       }
     }, 200); // Update every 200ms
@@ -330,7 +367,7 @@
   class="fixed inset-0 h-screen w-screen transition-all duration-300 {currentState === 'rest'
     ? 'text-brand-gray-light'
     : 'text-brand-gray'}"
-  style="background-image: url({currentState === 'rest' ? '/assets/bgDark.png' : '/assets/bgLight.png'}); background-repeat: repeat;"
+  style="background-image: url({currentState === 'rest' ? base + '/assets/bgDark.png' : base + '/assets/bgLight.png'}); background-repeat: repeat;"
 >
   <!-- Main performance display -->
   {#if !performanceEnded}
