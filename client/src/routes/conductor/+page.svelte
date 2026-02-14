@@ -12,6 +12,7 @@
     sessionSettings,
     instructionalMessage
   } from '$lib/stores/socket.js';
+  import Logotype from '$lib/components/Logotype.svelte';
   import { generateArcPreview, generateArcPath } from '$lib/utils/arc-preview.js';
   import { createRangeSlider, createSingleSlider, destroySlider } from '$lib/utils/controls.js';
   import { resetRandomArcCache } from '$lib/utils/arc-preview.js';
@@ -524,9 +525,7 @@ The piece will end automatically after ${currentSettings.durationMin} minutes.`;
   <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-xl p-8">
     <!-- Logotype -->
     <div class="mb-8">
-      <h1 class="text-[2.5rem] mb-8">
-        <span class="font-thin text-brand-feature">improv</span><span class="font-thin text-brand-gray-darkest">score</span>
-      </h1>
+      <Logotype />
     </div>
     <!-- Session Code Display -->
     <div class="mb-8">

@@ -2,6 +2,7 @@
   import { goto } from '$lib/utils/navigation.js';
   import { base } from '$app/paths';
   import { onMount } from 'svelte';
+  import Logotype from '$lib/components/Logotype.svelte';
   import { socketStore, isConnected, sessionCode, isConductor, players, instructionalMessage } from '$lib/stores/socket.js';
   import { initSocket, disconnectSocket } from '$lib/stores/socket.js';
 
@@ -110,9 +111,7 @@
   <div class="max-w-2xl w-full p-8">
     <!-- Logotype -->
     <div class="mb-8">
-      <h1 class="text-[2.5rem] mb-8">
-        <span class="font-thin text-brand-feature">improv</span><span class="font-thin text-brand-gray-darkest">score</span>
-      </h1>
+      <Logotype />
     </div>
     <!-- Session Code Display -->
     <div class="text-center mb-8">

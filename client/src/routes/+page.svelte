@@ -1,14 +1,13 @@
 <script>
   import { goto } from '$lib/utils/navigation.js';
   import { base } from '$app/paths';
+  import Logotype from '$lib/components/Logotype.svelte';
 </script>
 
 <div class="min-h-screen flex items-center justify-center" style="background-image: url('{base}/assets/bgLight.png'); background-repeat: repeat;">
   <div class="max-w-md w-full mx-4">
     <div class="text-center mb-12">
-      <h1 class="text-5xl mb-4">
-        <span class="font-thin text-brand-feature">improv</span><span class="font-thin text-brand-gray-darkest">score</span>
-      </h1>
+      <Logotype size="large" />
       <p class="text-brand-gray text-base">Real-time synchronized musical performances</p>
     </div>
 
