@@ -3,6 +3,8 @@
   import { base } from '$app/paths';
   import { onMount } from 'svelte';
   import Logotype from '$lib/components/Logotype.svelte';
+  import PrimaryButton from '$lib/components/PrimaryButton.svelte';
+  import SecondaryButton from '$lib/components/SecondaryButton.svelte';
 import { sessionCode, isConductor, players, sessionSettings, instructionalMessage, pendingPerformanceState } from '$lib/stores/socket.js';
 import { initSocket } from '$lib/stores/socket.js';
 
@@ -127,21 +129,22 @@ import { initSocket } from '$lib/stores/socket.js';
 
 
       <div class="flex space-x-4">
-        <button
+        <SecondaryButton
+          variant="gray"
           type="button"
           on:click={() => goto('/')}
-          class="flex-1 bg-gray-200 hover:bg-gray-300 text-brand-gray font-normal p-4 transition-colors duration-200 text-base leading-4"
+          className="flex-1"
           disabled={isLoading}
         >
           Back
-        </button>
-        <button
+        </SecondaryButton>
+        <PrimaryButton
           type="submit"
-          class="flex-1 bg-brand-feature hover:bg-brand-feature-dark text-white font-normal p-4 transition-colors duration-200 text-base leading-4 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1"
           disabled={isLoading || codeInput.length !== 4}
         >
           {isLoading ? 'Joining...' : 'Join'}
-        </button>
+        </PrimaryButton>
       </div>
     </form>
   </div>

@@ -13,6 +13,8 @@
     instructionalMessage
   } from '$lib/stores/socket.js';
   import Logotype from '$lib/components/Logotype.svelte';
+  import PrimaryButton from '$lib/components/PrimaryButton.svelte';
+  import SecondaryButton from '$lib/components/SecondaryButton.svelte';
   import { generateArcPreview, generateArcPath } from '$lib/utils/arc-preview.js';
   import { createRangeSlider, createSingleSlider, destroySlider } from '$lib/utils/controls.js';
   import { resetRandomArcCache } from '$lib/utils/arc-preview.js';
@@ -754,16 +756,17 @@ The piece will end automatically after ${currentSettings.durationMin} minutes.`;
 
     <!-- Action Buttons -->
     <div class="flex space-x-4">
-      <button
+      <SecondaryButton
+        variant="gray"
         on:click={handleCancel}
-        class="flex-1 bg-gray-200 hover:bg-gray-300 text-brand-gray font-normal p-4 transition-colors duration-200 text-base leading-4"
+        className="flex-1"
       >
         Cancel Session
-      </button>
-      <button
+      </SecondaryButton>
+      <PrimaryButton
         on:click={handleStartPerformance}
         disabled={currentPlayers.length < 1 || simulationRunning}
-        class="flex-1 bg-brand-feature hover:bg-brand-feature-dark text-white font-normal p-4 transition-colors duration-200 text-base leading-4 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-brand-feature"
+        className="flex-1"
       >
         {#if simulationRunning}
           Running Simulation...
@@ -772,7 +775,7 @@ The piece will end automatically after ${currentSettings.durationMin} minutes.`;
         {:else}
           Start Performance
         {/if}
-      </button>
+      </PrimaryButton>
     </div>
   </div>
 </div>
@@ -956,12 +959,9 @@ The piece will end automatically after ${currentSettings.durationMin} minutes.`;
 
       <!-- Footer -->
       <div class="border-t p-4 flex justify-end">
-        <button
-          on:click={closeSimulationResults}
-          class="bg-brand-feature hover:bg-brand-feature-dark text-white font-normal p-4 transition-colors duration-200 text-base leading-4"
-        >
+        <PrimaryButton on:click={closeSimulationResults}>
           Close
-        </button>
+        </PrimaryButton>
       </div>
     </div>
   </div>

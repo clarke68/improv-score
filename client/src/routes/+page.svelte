@@ -2,6 +2,8 @@
   import { goto } from '$lib/utils/navigation.js';
   import { base } from '$app/paths';
   import Logotype from '$lib/components/Logotype.svelte';
+  import PrimaryButton from '$lib/components/PrimaryButton.svelte';
+  import SecondaryButton from '$lib/components/SecondaryButton.svelte';
 </script>
 
 <div class="min-h-screen flex items-center justify-center" style="background-image: url('{base}/assets/bgLight.png'); background-repeat: repeat;">
@@ -12,19 +14,21 @@
     </div>
 
     <div class="space-y-4">
-      <button
+      <PrimaryButton
         on:click={() => goto('/conductor')}
-        class="w-full bg-brand-feature hover:bg-brand-feature-dark text-white font-normal p-4 shadow-lg transition-colors duration-200 text-base leading-4"
+        className="w-full"
+        shadow
       >
         Start a Session
-      </button>
+      </PrimaryButton>
 
-      <button
+      <SecondaryButton
+        variant="outlined"
         on:click={() => goto('/join')}
-        class="w-full bg-white hover:bg-gray-50 text-brand-feature font-normal p-4 shadow-lg border border-brand-feature transition-colors duration-200 text-base leading-4"
+        className="w-full"
       >
         Join a Session
-      </button>
+      </SecondaryButton>
     </div>
   </div>
 </div>

@@ -3,6 +3,7 @@
   import { base } from '$app/paths';
   import { onMount } from 'svelte';
   import Logotype from '$lib/components/Logotype.svelte';
+  import PrimaryButton from '$lib/components/PrimaryButton.svelte';
   import { initSocket } from '$lib/stores/socket.js';
   import { sessionCode, players, isConductor } from '$lib/stores/socket.js';
 
@@ -154,13 +155,13 @@
         />
       </div>
 
-      <button
+      <PrimaryButton
         type="submit"
-        bind:this={continueButton}
-        class="w-full bg-brand-feature hover:bg-brand-feature-dark text-white font-normal p-4 transition-colors duration-200 text-base leading-4"
+        bind:buttonRef={continueButton}
+        className="w-full"
       >
         Continue
-      </button>
+      </PrimaryButton>
     </form>
   </div>
 </div>
