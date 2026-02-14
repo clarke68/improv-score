@@ -53,6 +53,6 @@ npm run build
 ## Notes
 - Server auto-deploys via Railway when pushing to GitHub
 - Client must be built locally and uploaded via FTP
-- `VITE_SERVER_URL` is baked into the build at build time
+- `VITE_SERVER_URL` is baked into the build at build time (optional: runtime fallback uses Railway URL when loaded from non-localhost)
 - Always use `https://` for Railway URL (not `http://`)
 

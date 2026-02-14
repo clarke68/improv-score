@@ -22,7 +22,23 @@ export const serverTime = writable(Date.now());
 export const pendingPerformanceState = writable(null);
 
 // Initialize socket connection
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000';
+// Use env URL if set and not localhost; otherwise when loaded from production domain, use Railway URL
+const DEFAULT_SERVER = 'http://localhost:3000';
+const PRODUCTION_SERVER = 'https://improv-score-production.up.railway.app';
+
+function getServerUrl() {
+  const envUrl = import.meta.env.VITE_SERVER_URL;
+  if (envUrl && !envUrl.includes('localhost')) {
+    return envUrl;
+  }
+  // When app is loaded from non-localhost (e.g. production), use production server
+  if (typeof window !== 'undefined' && !['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+    return PRODUCTION_SERVER;
+  }
+  return envUrl || DEFAULT_SERVER;
+}
+
+const SERVER_URL = getServerUrl();
 
 let socketInstance = null;
 
