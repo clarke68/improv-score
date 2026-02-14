@@ -120,7 +120,7 @@ import { initSocket } from '$lib/stores/socket.js';
           bind:value={codeInput}
           on:input={handleCodeInput}
           maxlength="4"
-          placeholder="ABCD"
+          placeholder="----"
           class="w-full text-center text-4xl font-bold tracking-widest uppercase p-4 border border-gray-300 focus:border-brand-feature focus:outline-none bg-white"
           disabled={isLoading}
         />

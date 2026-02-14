@@ -8,6 +8,7 @@
   let socketInstance = null;
   let nickname = '';
   let playerNumber = 1;
+  let continueButton;
   let isConductorRole = false;
   let currentCode = '';
   let currentPlayers = [];
@@ -76,6 +77,9 @@
         players.set(updatedPlayers);
       });
     }
+
+    // Focus Continue button on load
+    setTimeout(() => continueButton?.focus(), 0);
 
     return () => {
       unsubscribeCode();
@@ -147,12 +151,13 @@
           placeholder={`Player ${playerNumber}`}
           maxlength="20"
           class="w-full p-4 border border-gray-300 focus:border-brand-feature focus:outline-none text-center text-base leading-4 bg-white"
-          autofocus
+          on:focus={(e) => e.currentTarget?.select()}
         />
       </div>
 
       <button
         type="submit"
+        bind:this={continueButton}
         class="w-full bg-brand-feature hover:bg-brand-feature-dark text-white font-normal p-4 transition-colors duration-200 text-base leading-4"
       >
         Continue
