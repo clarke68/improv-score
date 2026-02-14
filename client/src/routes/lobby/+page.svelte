@@ -1,6 +1,5 @@
 <script>
   import { goto } from '$lib/utils/navigation.js';
-  import { base } from '$app/paths';
   import { onMount } from 'svelte';
   import Logotype from '$lib/components/Logotype.svelte';
   import { socketStore, isConnected, sessionCode, isConductor, players, instructionalMessage } from '$lib/stores/socket.js';
@@ -107,7 +106,7 @@
   }
 </script>
 
-<div class="min-h-screen flex items-center justify-center px-4" style="background-image: url('{base}/assets/bgLight.png'); background-repeat: repeat;">
+<div class="min-h-screen flex items-center justify-center px-4 bg-tiled-light">
   <div class="max-w-2xl w-full p-8">
     <!-- Logotype -->
     <div class="mb-8">

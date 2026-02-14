@@ -1,6 +1,5 @@
 <script>
   import { goto } from '$lib/utils/navigation.js';
-  import { base } from '$app/paths';
   import { onMount, onDestroy } from 'svelte';
   import { initSocket, disconnectSocket } from '$lib/stores/socket.js';
   import {
@@ -523,7 +522,7 @@ The piece will end automatically after ${currentSettings.durationMin} minutes.`;
   }
 </script>
 
-<div class="min-h-screen py-8 px-4" style="background-image: url('{base}/assets/bgLight.png'); background-repeat: repeat;">
+<div class="min-h-screen py-8 px-4 bg-tiled-light">
   <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-xl p-8">
     <!-- Logotype -->
     <div class="mb-8">

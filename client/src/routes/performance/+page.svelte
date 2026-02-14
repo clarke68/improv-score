@@ -1,6 +1,5 @@
 <script>
   import { goto } from '$lib/utils/navigation.js';
-  import { base } from '$app/paths';
   import { onMount, onDestroy } from 'svelte';
   import { initSocket, disconnectSocket } from '$lib/stores/socket.js';
   import {
@@ -523,9 +522,8 @@
 
 <div
   class="fixed inset-0 h-screen w-screen transition-all duration-300 {currentState === 'rest'
-    ? 'text-brand-gray-light'
-    : 'text-brand-gray'}"
-  style="background-image: url({currentState === 'rest' ? base + '/assets/bgDark.png' : base + '/assets/bgLight.png'}); background-repeat: repeat;"
+    ? 'text-brand-gray-light bg-tiled-dark'
+    : 'text-brand-gray bg-tiled-light'}"
 >
   <!-- Contextual Banner for late joiners/reconnectors -->
   {#if showContextualBanner}

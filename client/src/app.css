@@ -141,3 +141,14 @@ body {
   animation: fade-in 0.3s ease-out;
 }
 
+/* Tiled background images (use CSS variables set in layout) */
+.bg-tiled-light {
+  background-image: var(--bg-light);
+  background-repeat: repeat;
+}
+
+.bg-tiled-dark {
+  background-image: var(--bg-dark);
+  background-repeat: repeat;
+}
+
