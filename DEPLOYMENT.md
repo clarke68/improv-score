@@ -21,10 +21,11 @@
    ```
 
 3. **Upload to FTP**
-   - FTP Server: clarkerobinsondesign.com
+   - FTP Server: basementconservatory.com
    - Remote Path: `/improvScore/`
    - Upload all contents of `client/build/` directory
    - Use FileZilla or similar FTP client
+   - Use **binary** transfer mode so files upload byte-for-byte (ASCII/auto mode rewrites line endings in .html and .svg files)
 
 ## Full Deployment Process
 
@@ -46,7 +47,8 @@ npm run build
 ```
 
 ## Important URLs
-- **Production Site**: https://clarkerobinsondesign.com/improvScore/
+- **Production Site**: https://basementconservatory.com/improvScore/
+- **Previous Site**: https://clarkerobinsondesign.com/improvScore/ (retired; redirect to the new URL)
 - **Railway Server**: https://improv-score-production.up.railway.app
 - **Base Path**: `/improvScore` (configured in `client/config/base-path.js`)
 
