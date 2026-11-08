@@ -106,7 +106,7 @@
   }
 </script>
 
-<div class="min-h-screen flex items-center justify-center px-4 bg-tiled-light">
+<div class="min-h-screen flex items-start justify-center px-4 pt-8 sm:pt-16 bg-tiled-light">
   <div class="max-w-2xl w-full p-8">
     <!-- Logotype -->
     <div class="mb-8">
