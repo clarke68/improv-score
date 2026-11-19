@@ -1,6 +1,8 @@
 <script>
   import { goto } from '$lib/utils/navigation.js';
   import { onMount } from 'svelte';
+  import { preloadCode } from '$app/navigation';
+  import { base } from '$app/paths';
   import Logotype from '$lib/components/Logotype.svelte';
   import { socketStore, isConnected, sessionCode, isConductor, players, instructionalMessage } from '$lib/stores/socket.js';
   import { initSocket, disconnectSocket } from '$lib/stores/socket.js';
@@ -22,6 +24,13 @@
       goto('/join');
       return;
     }
+
+    // Download the performance page's code now, while waiting, instead of at the
+    // instant the pre-roll ends. On a flaky phone connection that late download
+    // can fail and leave the player on an error page instead of the first cue.
+    preloadCode(`${base}/performance`).catch((err) => {
+      console.warn('Preloading performance page failed (will retry on navigation):', err);
+    });
 
     // Subscribe to stores
     const unsubscribeCode = sessionCode.subscribe(code => {
